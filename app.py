@@ -21,29 +21,29 @@ def duel(room_id):
 # Player joins room
 @socketio.on('join')
 def on_join(data):
-    #Add a player to a room and start the game once two players join.
+    #1. Add a player to a room and start the game once two players join.
     room = data['room']
     sid = request.sid
 
-    # Create room on first join.
+    # 2. Create room on first join.
     if room not in rooms:
         rooms[room] = {"players": [], "active": True}
 
-    # Track this socket session as a player in the room.
+    # 3. Track this socket session as a player in the room.
     rooms[room]["players"].append(sid)
     join_room(room)
 
     # Notify everyone in the room that a player joined.
     emit('status', {'msg': 'Player joined'}, room=room)
 
-    # Start the match when exactly two players are present.
+    # 4. Start the match when exactly two players are present.
     if len(rooms[room]["players"]) == 2:
         emit('start_game', room=room)
 
 # Player loses (tab switch, etc.)
 @socketio.on('player_lost')
 def player_lost(data):
-    #End the game and broadcast winner/loser when one player loses.
+    #5. End the game and broadcast winner/loser when one player loses.
     room = data['room']
     loser = request.sid
 
@@ -52,7 +52,7 @@ def player_lost(data):
         return
 
     players = rooms[room]["players"]
-    # Winner is the remaining player in the room.
+    # 6. Winner is the remaining player in the room.
     winner = [p for p in players if p != loser][0]
 
     rooms[room]["active"] = False

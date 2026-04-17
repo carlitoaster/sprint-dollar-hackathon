@@ -3,7 +3,7 @@ from flask_socketio import SocketIO, join_room, emit
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')
+socketio = SocketIO(app, cors_allowed_origins='*')
 
 DEFAULT_TIMER_SECONDS = 600
 MIN_TIMER_SECONDS = 5

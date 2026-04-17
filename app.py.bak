@@ -1,0 +1,98 @@
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO, join_room, emit
+
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret'
+
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Store rooms
+rooms = {}  
+# Format:
+# rooms = {
+#   "room1": {
+#       "players": [sid1, sid2],
+#       "active": True
+#   }
+# }
+
+# -------------------------
+# ROUTES
+# -------------------------
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+# -------------------------
+# SOCKET EVENTS
+# -------------------------
+
+@socketio.on('join')
+def handle_join(data):
+    room = data.get('room')
+    sid = request.sid
+
+    if not room:
+        return
+
+    # Create room if it doesn't exist
+    if room not in rooms:
+        rooms[room] = {
+            "players": [],
+            "active": True
+        }
+
+    # Prevent more than 2 players
+    if len(rooms[room]["players"]) >= 2:
+        emit('status', {'msg': 'Room is full'})
+        return
+
+    rooms[room]["players"].append(sid)
+    join_room(room)
+
+    emit('status', {'msg': 'Player joined'}, room=room)
+
+    # Start game when 2 players join
+    if len(rooms[room]["players"]) == 2:
+        emit('start_game', room=room)
+
+
+@socketio.on('player_lost')
+def handle_loss(data):
+    room = data.get('room')
+    loser = request.sid
+
+    if room not in rooms or not rooms[room]["active"]:
+        return
+
+    players = rooms[room]["players"]
+
+    if len(players) < 2:
+        return
+
+    winner = [p for p in players if p != loser][0]
+
+    rooms[room]["active"] = False
+
+    emit('game_over', {
+        'winner': winner,
+        'loser': loser
+    }, room=room)
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    sid = request.sid
+
+    for room, data in rooms.items():
+        if sid in data["players"] and data["active"]:
+            handle_loss({'room': room})
+
+
+# -------------------------
+# RUN
+# -------------------------
+if __name__ == '__main__':
+    socketio.run(app, debug=True)

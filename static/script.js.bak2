@@ -1,0 +1,106 @@
+const socket = io({
+    transports: ['polling', 'websocket']
+});
+
+let room = null;
+let timeLeft = 600;
+let timerInterval = null;
+let gameEnded = false;
+let hasLostFocus = false;
+
+function joinRoom() {
+    room = document.getElementById("roomInput").value.trim().toUpperCase();
+    if (!room) return;
+
+    document.getElementById("lobby").classList.add("hidden");
+    document.getElementById("game").classList.remove("hidden");
+    document.getElementById("status").innerText = "Connecting...";
+
+    if (!socket.connected) {
+        socket.connect();
+    }
+}
+
+socket.on('connect', () => {
+    if (room) {
+        document.getElementById("status").innerText = "Joining room...";
+        socket.emit('join', { room });
+    }
+});
+
+socket.on('connect_error', () => {
+    document.getElementById("status").innerHTML = "<span class='danger'>Could not connect to host. Make sure the server is running and the other device is on the same Wi-Fi/hotspot.</span>";
+    document.getElementById("lobby").classList.remove("hidden");
+    document.getElementById("game").classList.add("hidden");
+});
+
+socket.on('disconnect', () => {
+    if (!gameEnded) {
+        document.getElementById("status").innerHTML = "<span class='danger'>Disconnected from server.</span>";
+    }
+});
+
+socket.on('start_game', () => {
+    gameEnded = false;
+    hasLostFocus = false;
+    document.getElementById("status").innerText = "Game started! Stay on this tab.";
+    startTimer();
+});
+
+socket.on('status', (data) => {
+    document.getElementById("status").innerText = data.msg;
+});
+
+socket.on('game_over', (data) => {
+    clearInterval(timerInterval);
+    gameEnded = true;
+
+    if (data.winner === socket.id) {
+        document.getElementById("status").innerHTML = "<span class='win'>You WIN!</span>";
+    } else {
+        document.getElementById("status").innerHTML = "<span class='danger'>You LOST!</span>";
+    }
+});
+
+function startTimer() {
+    clearInterval(timerInterval);
+    timeLeft = 600;
+    document.getElementById("timer").innerText = "10:00";
+
+    timerInterval = setInterval(() => {
+        timeLeft--;
+
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+
+        document.getElementById("timer").innerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            gameEnded = true;
+            document.getElementById("status").innerHTML = "<span class='win'>Both survived!</span>";
+        }
+    }, 1000);
+}
+
+function loseForLeavingTab() {
+    if (!room || gameEnded || hasLostFocus) return;
+
+    hasLostFocus = true;
+    clearInterval(timerInterval);
+    document.getElementById("status").innerHTML = "<span class='danger'>You left the tab and lost.</span>";
+    socket.emit('player_lost', { room });
+}
+
+// Lose when the tab becomes hidden or the window loses focus.
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        loseForLeavingTab();
+    }
+});
+
+window.addEventListener('blur', () => {
+    loseForLeavingTab();
+});
+
+window.joinRoom = joinRoom;

@@ -5,7 +5,7 @@ let timeLeft = 600;
 let timerInterval = null;
 
 function joinRoom() {
-    room = document.getElementById("roomInput").value;
+    room = document.getElementById("roomInput").value.trim().toUpperCase();
     if (!room) return;
 
     document.getElementById("lobby").classList.add("hidden");

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus Duel</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="container" id="lobby">
+    <h1>Focus Duel</h1>
+    <p>Last connected player wins $1</p>
+
+    <input id="roomInput" placeholder="Enter Room Code">
+    <input id="timerInput" type="number" min="5" max="3600" value="600" placeholder="Timer in seconds">
+    <button id="joinButton" onclick="joinRoom()">Start / Join Duel</button>
+</div>
+
+<div class="container hidden" id="game">
+    <h1>Stay Focused</h1>
+    <div class="timer" id="timer">10:00</div>
+    <div class="status" id="chosenTimer">Round time: 10:00</div>
+    <div class="status" id="status">Waiting for opponent...</div>
+</div>
+
+<script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
